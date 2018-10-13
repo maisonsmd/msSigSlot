@@ -130,17 +130,37 @@ public:
 				for (int j = i; j < _slotsCount - 1; j++)
 					_connections[j] = _connections[j + 1];
 				_connections[_slotsCount] = NULL;
+				Serial.println("detach " + String(i));
 			}
 		}
 		return *this;
+	}
+
+	Signal & detach(ReturnT(*func)(ParamsT...)) {
+		FunctionSlot< ReturnT(ParamsT...)> slot(func);
+		return detach(slot);
+	}
+
+	template <typename ObjectT>
+	Signal & detach(ObjectT *obj, ReturnT(ObjectT::*method)(ParamsT...)) {
+		MethodSlot<ObjectT, ReturnT(ParamsT...)> slot(obj, method);
+		return detach(slot);
 	}
 
 	Signal & operator += (const Slot<ParamsT...>& slot) {
 		return attach(slot);
 	}
 
+	Signal & operator += (ReturnT(*func)(ParamsT...)) {
+		return attach(func);
+	}
+
 	Signal & operator -= (const Slot<ParamsT...>& slot) {
 		return detach(slot);
+	}
+
+	Signal & operator -= (ReturnT(*func)(ParamsT...)) {
+		return detach(func);
 	}
 
 	void fire(ParamsT...params) const {

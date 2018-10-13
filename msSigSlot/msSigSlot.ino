@@ -1,14 +1,14 @@
 #include "msSigSlot.h"
 
 void FunctionNoReturn_1(int a, int b) {
-	Serial.print("func no return called with: a=");
+	Serial.print("func no return 1 called with: a=");
 	Serial.print(a);
 	Serial.print(", b=");
 	Serial.println(b);
 }
 
 void FunctionNoReturn_2(int a, int b) {
-	Serial.print("func no return called with: a=");
+	Serial.print("func no return 2 called with: a=");
 	Serial.print(a);
 	Serial.print(", b=");
 	Serial.println(b);
@@ -66,13 +66,20 @@ void setup()
 	signal1.attach(FunctionSlot<void(int, int)>(FunctionNoReturn_2));
 	//or
 	signal1 += MethodSlot<FooClass, void(int, int)>(&barObject, &FooClass::MethodNoReturn);
+	//or
+	signal1 += FunctionNoReturn_1;
 
 	/* Executing */
 	signal1.fire(2, 3);
+	Serial.println("---------------------------");
 	//or
 	signal1(2, 3);
+	Serial.println("---------------------------");
 
-	
+	signal1 -= FunctionNoReturn_1;
+	signal1(1, 22);
+	Serial.println("---------------------------");
+		
 	//or using Lambda expression:
 	Signal<void(float)> signal2;
 	signal2.attach([](float a) -> void {
