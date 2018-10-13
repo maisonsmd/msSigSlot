@@ -3,3 +3,12 @@
 ################################################################################
 
 /msSigSlot/.vs
+/msSigSlot/Debug
+/msSigSlot/__vm
+/msSigSlot/msSigSlot.vcxproj.user
+/msSigSlot/msSigSlot.vcxproj.filters
+/msSigSlot/msSigSlot.vcxproj
+/msSigSlot/msSigSlot.user
+/msSigSlot/msSigSlot.sln
+/msSigSlot/msSigSlot.filters
+/.vs

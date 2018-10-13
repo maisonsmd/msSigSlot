@@ -123,11 +123,11 @@ public:
 	}
 
 	Signal & detach(const Slot<ParamsT...>& slot) {
-		for (int8_t i = _slotsCount - 1; i >= 0; --i) {
+		for (int8_t i = _slotsCount - 1; i >= 0; i--) {
 			if (slot == _connections[i]) {
 				delete _connections[i];
 				--_slotsCount;
-				for (int j = i; j < _slotsCount; ++j)
+				for (int j = i; j < _slotsCount - 1; j++)
 					_connections[j] = _connections[j + 1];
 				_connections[_slotsCount] = NULL;
 			}
@@ -138,7 +138,7 @@ public:
 	Signal & operator += (const Slot<ParamsT...>& slot) {
 		return attach(slot);
 	}
-	
+
 	Signal & operator -= (const Slot<ParamsT...>& slot) {
 		return detach(slot);
 	}
