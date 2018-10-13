@@ -74,7 +74,7 @@ void setup()
 
 	
 	//or using Lambda expression:
-	Signal<void(float a)> signal2;
+	Signal<void(float)> signal2;
 	signal2.attach([](float a) -> void {
 		Serial.println("Lambda expression with a=" + String(a));
 	});
