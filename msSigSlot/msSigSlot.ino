@@ -1,4 +1,5 @@
 #include "msSigSlot.h"
+#include <MemoryFree-master/MemoryFree.h>
 
 void FunctionNoReturn_1(int a, int b) {
 	Serial.print("func no return 1 called with: a=");
@@ -58,35 +59,49 @@ void setup()
 	FunctionSlot<void(int, int)> functionSlot(FunctionNoReturn_1);
 	MethodSlot<FooClass, void(int, int)> methodSlot(&barObject, &FooClass::MethodNoReturn);
 
-	Signal<void(int, int), 4> signal1;
+	Signal<void(int, int), 8> signal1;
 	signal1.attach(functionSlot);
 	signal1.attach(methodSlot);
 
-	//or
+	////or
 	signal1.attach(FunctionSlot<void(int, int)>(FunctionNoReturn_2));
-	//or
+	////or
 	signal1 += MethodSlot<FooClass, void(int, int)>(&barObject, &FooClass::MethodNoReturn);
-	//or
+	////or
 	signal1 += FunctionNoReturn_1;
 
-	/* Executing */
+	///* Executing */
 	signal1.fire(2, 3);
 	Serial.println("---------------------------");
-	//or
+	////or
 	signal1(2, 3);
 	Serial.println("---------------------------");
 
 	signal1 -= FunctionNoReturn_1;
+	signal1.detach(FunctionSlot<void(int, int)>(FunctionNoReturn_1));
+	signal1 -= (methodSlot);
+
 	signal1(1, 22);
 	Serial.println("---------------------------");
-		
+	delay(1000);
+
 	//or using Lambda expression:
-	Signal<void(float)> signal2;
+	Signal<void(float), 8> signal2;
 	signal2.attach([](float a) -> void {
-		Serial.println("Lambda expression with a=" + String(a));
+		Serial.println("Lambda expression called with a=" + String(a));
+		Serial.println(freeMemory());
 	});
+
+	signal2 += [](float a) -> void {
+		Serial.println("Lambda expression 1 called with a=" + String(a));
+		Serial.println(freeMemory());
+		barObject.MethodNoReturn(a,a);
+	};
+
 	signal2(10.23);
-	
+
+	Serial.println(freeMemory());
+
 	pinMode(13, OUTPUT);
 }
 

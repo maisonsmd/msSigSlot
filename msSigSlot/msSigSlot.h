@@ -89,18 +89,17 @@ public:
 	}
 };
 
-template <typename Signature, uint8_t Slots = 8>
+template <typename Signature, int8_t Slots = 1>
 class Signal;
 
-template <uint8_t Slots, typename ReturnT, typename ...ParamsT> class Signal <ReturnT(ParamsT...), Slots> {
+template <int8_t Slots, typename ReturnT, typename ...ParamsT> class Signal <ReturnT(ParamsT...), Slots> {
 private:
 	Slot<ParamsT...> * _connections[Slots];
-	uint8_t _slotsCount = 0;
+	int8_t _slotsCount = 0;
 
 public:
-	Signal() {}
 	virtual ~Signal() {
-		for (uint8_t i = 0; i < _slotsCount; ++i)
+		for (uint8_t i = 0; i < _slotsCount; i++)
 			delete _connections[i];
 	}
 
@@ -112,39 +111,37 @@ public:
 	}
 
 	Signal & attach(ReturnT(*func)(ParamsT...)) {
-		FunctionSlot< ReturnT(ParamsT...)> slot(func);
-		return attach(slot);
+		return attach(FunctionSlot< ReturnT(ParamsT...)>(func));
 	}
 
 	template <typename ObjectT>
 	Signal & attach(ObjectT *obj, ReturnT(ObjectT::*method)(ParamsT...)) {
-		MethodSlot<ObjectT, ReturnT(ParamsT...)> slot(obj, method);
-		return attach(slot);
+		return attach(MethodSlot<ObjectT, ReturnT(ParamsT...)>(obj, method));
 	}
 
 	Signal & detach(const Slot<ParamsT...>& slot) {
 		for (int8_t i = _slotsCount - 1; i >= 0; i--) {
 			if (slot == _connections[i]) {
 				delete _connections[i];
-				--_slotsCount;
+
 				for (int j = i; j < _slotsCount - 1; j++)
 					_connections[j] = _connections[j + 1];
+
 				_connections[_slotsCount] = NULL;
-				Serial.println("detach " + String(i));
+
+				_slotsCount--;
 			}
 		}
 		return *this;
 	}
 
 	Signal & detach(ReturnT(*func)(ParamsT...)) {
-		FunctionSlot< ReturnT(ParamsT...)> slot(func);
-		return detach(slot);
+		return detach(FunctionSlot< ReturnT(ParamsT...)>(func));
 	}
 
 	template <typename ObjectT>
 	Signal & detach(ObjectT *obj, ReturnT(ObjectT::*method)(ParamsT...)) {
-		MethodSlot<ObjectT, ReturnT(ParamsT...)> slot(obj, method);
-		return detach(slot);
+		return detach(MethodSlot<ObjectT, ReturnT(ParamsT...)>(obj, method));
 	}
 
 	Signal & operator += (const Slot<ParamsT...>& slot) {
