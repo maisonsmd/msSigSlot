@@ -107,6 +107,15 @@ public:
 		if (_slotsCount < Slots) {
 			_connections[_slotsCount++] = slot.clone();
 		}
+        //delete the oldest connection
+        else {
+            for (int8_t i = 0; i < _slotsCount - 1; i++) {
+                //shift left 1
+                _connections[i] = _connections[i + 1];
+            }
+            //update new connection
+            _connections[_slotsCount - 1] = slot.clone();
+        }
 		return *this;
 	}
 
