@@ -1,29 +1,22 @@
-// msSigSlot.h
+#pragma once
 
-#ifndef _MSSIGSLOT_h
-#define _MSSIGSLOT_h
+enum class SlotType : uint8_t { Function, Method };
 
-#if defined(ARDUINO) && ARDUINO >= 100
-#include "arduino.h"
-#else
-#include "WProgram.h"
-#endif
-
-enum SlotType { Function, Method };
-
-template <typename ...ParamsT>
-class Slot {
+template <typename ...params_t>
+class Slot
+{
 protected:
 	SlotType _slotType;
 	Slot(SlotType slotType) : _slotType(slotType) {}
+
 public:
 	virtual ~Slot() {}
 
-	virtual void operator()(ParamsT... params) const = 0;
+	virtual void operator()(params_t... params) const = 0;
 
-	virtual bool operator==(const Slot<ParamsT...>* slot) const = 0;
+	virtual bool operator==(const Slot<params_t...> * slot) const = 0;
 
-	virtual Slot<ParamsT...>* clone() const = 0;
+	virtual Slot<params_t...>* clone() const = 0;
 
 	SlotType slotType() const {
 		return _slotType;
@@ -33,57 +26,58 @@ public:
 template <typename Signature>
 class FunctionSlot;
 
-template <typename ReturnT, typename ...ParamsT>
-class FunctionSlot<ReturnT(ParamsT...)> : public Slot<ParamsT...> {
+template <typename return_t, typename ...params_t>
+class FunctionSlot<return_t(params_t...)> final: public Slot<params_t...>
+{
 private:
-	typedef ReturnT(*FuncPtr)(ParamsT...);
+	typedef return_t(*FuncPtr)(params_t...);
 	FuncPtr _funcPtr;
 public:
-	FunctionSlot(FuncPtr f) : Slot<ParamsT...>(SlotType::Function), _funcPtr(f) {}
+	FunctionSlot(FuncPtr f) : Slot<params_t...>(SlotType::Function), _funcPtr(f) {}
 
-	Slot<ParamsT...> *clone() const {
-		return new FunctionSlot<ReturnT(ParamsT...)>(_funcPtr);
+	Slot<params_t...> * clone() const {
+		return new FunctionSlot<return_t(params_t...)>(_funcPtr);
 	}
 
-	void operator() (ParamsT... params) const {
+	void operator() (params_t... params) const {
 		(_funcPtr)(params...);
 	}
 
-	bool operator==(const Slot<ParamsT...>* slot) const {
-		if (slot && slot->slotType() == Slot<ParamsT... >::_slotType) {
-			const FunctionSlot<ReturnT(ParamsT...)>* functSlot = reinterpret_cast<const FunctionSlot<ReturnT(ParamsT...)>*>(slot);
+	bool operator==(const Slot<params_t...> * slot) const {
+		if (slot && slot->slotType() == Slot<params_t... >::_slotType) {
+			const FunctionSlot<return_t(params_t...)>* functSlot = reinterpret_cast<const FunctionSlot<return_t(params_t...)>*>(slot);
 			return functSlot && functSlot->_funcPtr == this->_funcPtr;
 		}
 		return false;
 	}
 };
 
-template <typename ObjectT, typename Signature>
+template <typename class_t, typename Signature>
 class MethodSlot;
 
-template <typename ObjectT, typename ReturnT, typename ...ParamsT>
-class MethodSlot<ObjectT, ReturnT(ParamsT...)> : public Slot<ParamsT...> {
+template <typename class_t, typename return_t, typename ...params_t>
+class MethodSlot<class_t, return_t(params_t...)> final : public Slot<params_t...>
+{
 private:
-	typedef ReturnT(ObjectT::*FuncPtr)(ParamsT...);
+	typedef return_t(class_t::*method_t)(params_t...);
+	class_t * obj;
+	method_t method;
 
-	ObjectT *_obj;
-
-	FuncPtr _funcPrt;
 public:
-	MethodSlot(ObjectT *obj, FuncPtr f) : Slot<ParamsT...>(SlotType::Method), _obj(obj), _funcPrt(f) { }
+	MethodSlot(class_t *obj, method_t f) : Slot<params_t...>(SlotType::Method), obj(obj), method(f) {}
 
-	Slot<ParamsT...> * clone() const {
-		return new MethodSlot<ObjectT, ReturnT(ParamsT...)>(_obj, _funcPrt);
+	Slot<params_t...> * clone() const {
+		return new MethodSlot<class_t, return_t(params_t...)>(obj, method);
 	}
 
-	void operator() (ParamsT... params) const {
-		return (_obj->*_funcPrt)(params...);
+	void operator() (params_t... params) const {
+		return (obj->*method)(params...);
 	}
 
-	bool operator==(const Slot<ParamsT...>* slot) const {
-		if (slot && slot->slotType() == Slot<ParamsT...>::_slotType) {
-			const MethodSlot<ObjectT, ReturnT(ParamsT...)>* methSlot = reinterpret_cast<const MethodSlot<ObjectT, ReturnT(ParamsT...)>*>(slot);
-			return methSlot && methSlot->_obj == _obj && methSlot->_funcPrt == _funcPrt;
+	bool operator==(const Slot<params_t...>* slot) const {
+		if (slot && slot->slotType() == Slot<params_t...>::_slotType) {
+			const MethodSlot<class_t, return_t(params_t...)>* methSlot = reinterpret_cast<const MethodSlot<class_t, return_t(params_t...)>*>(slot);
+			return methSlot && methSlot->obj == obj && methSlot->method == method;
 		}
 		return false;
 	}
@@ -92,9 +86,10 @@ public:
 template <typename Signature, int8_t Slots = 1>
 class Signal;
 
-template <int8_t Slots, typename ReturnT, typename ...ParamsT> class Signal <ReturnT(ParamsT...), Slots> {
+template <int8_t Slots, typename return_t, typename ...params_t> class Signal <return_t(params_t...), Slots>
+{
 private:
-	Slot<ParamsT...> * _connections[Slots];
+	Slot<params_t...> * _connections[Slots];
 	int8_t _slotsCount = 0;
 
 public:
@@ -103,33 +98,32 @@ public:
 			delete _connections[i];
 	}
 
-	Signal & attach(const Slot<ParamsT...>& slot) {
-		if (_slotsCount < Slots) {
+	Signal & attach(const Slot<params_t...>& slot) {
+		if (_slotsCount < Slots)
 			_connections[_slotsCount++] = slot.clone();
+		//delete the oldest connection
+		else {
+			for (int8_t i = 0; i < _slotsCount - 1; i++) {
+				//shift left 1
+				_connections[i] = _connections[i + 1];
+			}
+			//update new connection
+			_connections[_slotsCount - 1] = slot.clone();
 		}
-        //delete the oldest connection
-        else {
-            for (int8_t i = 0; i < _slotsCount - 1; i++) {
-                //shift left 1
-                _connections[i] = _connections[i + 1];
-            }
-            //update new connection
-            _connections[_slotsCount - 1] = slot.clone();
-        }
 		return *this;
 	}
 
-	Signal & attach(ReturnT(*func)(ParamsT...)) {
-		return attach(FunctionSlot< ReturnT(ParamsT...)>(func));
+	Signal & attach(return_t(*func)(params_t...)) {
+		return attach(FunctionSlot< return_t(params_t...)>(func));
 	}
 
-	template <typename ObjectT>
-	Signal & attach(ObjectT *obj, ReturnT(ObjectT::*method)(ParamsT...)) {
-		return attach(MethodSlot<ObjectT, ReturnT(ParamsT...)>(obj, method));
+	template <typename class_t>
+	Signal & attach(class_t *obj, return_t(class_t::*method)(params_t...)) {
+		return attach(MethodSlot<class_t, return_t(params_t...)>(obj, method));
 	}
 
-	Signal & detach(const Slot<ParamsT...>& slot) {
-		for (int8_t i = _slotsCount - 1; i >= 0; i--) {
+	Signal & detach(const Slot<params_t...>& slot) {
+		for (int8_t i = _slotsCount - 1; i >= 0; i--)
 			if (slot == _connections[i]) {
 				delete _connections[i];
 
@@ -140,44 +134,40 @@ public:
 
 				_slotsCount--;
 			}
-		}
 		return *this;
 	}
 
-	Signal & detach(ReturnT(*func)(ParamsT...)) {
-		return detach(FunctionSlot< ReturnT(ParamsT...)>(func));
+	Signal & detach(return_t(*func)(params_t...)) {
+		return detach(FunctionSlot< return_t(params_t...)>(func));
 	}
 
-	template <typename ObjectT>
-	Signal & detach(ObjectT *obj, ReturnT(ObjectT::*method)(ParamsT...)) {
-		return detach(MethodSlot<ObjectT, ReturnT(ParamsT...)>(obj, method));
+	template <typename class_t>
+	Signal & detach(class_t *obj, return_t(class_t::*method)(params_t...)) {
+		return detach(MethodSlot<class_t, return_t(params_t...)>(obj, method));
 	}
 
-	Signal & operator += (const Slot<ParamsT...>& slot) {
+	Signal & operator += (const Slot<params_t...>& slot) {
 		return attach(slot);
 	}
 
-	Signal & operator += (ReturnT(*func)(ParamsT...)) {
+	Signal & operator += (return_t(*func)(params_t...)) {
 		return attach(func);
 	}
 
-	Signal & operator -= (const Slot<ParamsT...>& slot) {
+	Signal & operator -= (const Slot<params_t...>& slot) {
 		return detach(slot);
 	}
 
-	Signal & operator -= (ReturnT(*func)(ParamsT...)) {
+	Signal & operator -= (return_t(*func)(params_t...)) {
 		return detach(func);
 	}
 
-	void fire(ParamsT...params) const {
-		for (int i = 0; i < _slotsCount; i++) {
+	void fire(params_t...params) const {
+		for (int i = 0; i < _slotsCount; i++)
 			(*_connections[i])(params...);
-		}
 	}
 
-	void operator ()(ParamsT...params)const {
+	void operator ()(params_t...params)const {
 		fire(params...);
 	}
 };
-
-#endif
